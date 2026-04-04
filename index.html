@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Sticker AI Pro</title>
+<title>Sticker AI PRO</title>
 
 <style>
 body {
@@ -21,7 +21,7 @@ h1 {
   padding: 15px;
 }
 
-input, select, button {
+input, button {
   width: 90%;
   margin: 8px;
   padding: 12px;
@@ -33,10 +33,6 @@ button {
   background: linear-gradient(45deg, #00ff99, #00ccff);
   font-weight: bold;
   cursor: pointer;
-}
-
-button:hover {
-  opacity: 0.9;
 }
 
 .styles button {
@@ -53,10 +49,6 @@ img {
   margin-top: 15px;
   max-width: 90%;
   border-radius: 12px;
-}
-
-#status {
-  margin-top: 10px;
 }
 
 #history img {
@@ -118,7 +110,7 @@ function buildPrompt(base) {
   const styles = {
     sticker: "cute sticker, white background, whatsapp style, high quality",
     emoji: "emoji style, simple, rounded, clean, vector",
-    anime: "anime style, vibrant colors, detailed, studio ghibli",
+    anime: "anime style, vibrant colors, detailed",
     realista: "photorealistic, ultra realistic, 4k, high detail",
     pixel: "pixel art, 8-bit, retro game style",
     "3d": "3D render, blender style, soft lighting",
@@ -127,6 +119,13 @@ function buildPrompt(base) {
 
   return base + ", " + styles[style];
 }
+
+// 🔥 MODELOS COM FALLBACK
+const models = [
+  "stabilityai/stable-diffusion-xl-base-1.0",
+  "stabilityai/stable-diffusion-2",
+  "runwayml/stable-diffusion-v1-5"
+];
 
 async function generate() {
   const basePrompt = document.getElementById('prompt').value;
@@ -142,30 +141,37 @@ async function generate() {
   document.getElementById('status').innerText = 'Gerando... ⏳';
   document.getElementById('img').src = '';
 
-  try {
-    const res = await fetch('/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: prompt,
-        model: "runwayml/stable-diffusion-v1-5",
-        apiKey: apiKey
-      })
-    });
+  for (let model of models) {
+    try {
+      document.getElementById('status').innerText = 'Tentando: ' + model;
 
-    if (!res.ok) throw new Error(await res.text());
+      const res = await fetch('/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: prompt,
+          model: model,
+          apiKey: apiKey
+        })
+      });
 
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
+      if (!res.ok) throw new Error(await res.text());
 
-    document.getElementById('img').src = url;
-    document.getElementById('status').innerText = '✅ Pronto!';
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
 
-    save(url);
+      document.getElementById('img').src = url;
+      document.getElementById('status').innerText = '✅ Gerado!';
 
-  } catch (e) {
-    document.getElementById('status').innerText = '❌ ' + e.message;
+      save(url);
+      return;
+
+    } catch (err) {
+      console.log("Erro no modelo:", model);
+    }
   }
+
+  document.getElementById('status').innerText = '❌ Todos os modelos falharam';
 }
 
 // HISTÓRICO
@@ -202,7 +208,7 @@ function downloadImage() {
   a.click();
 }
 
-// LIMPAR
+// LIMPAR HISTÓRICO
 function clearHistory() {
   localStorage.removeItem('imgs');
   renderHistory();
