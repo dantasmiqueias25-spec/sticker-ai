@@ -2,199 +2,213 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Sticker AI</title>
+<title>Sticker AI Pro</title>
 
 <style>
-:root {
-  --primary: #00ff88;
-  --bg: #0d0d0d;
-  --card: #1a1a1a;
-  --text: #eee;
-}
-
 body {
+  background: #0f0f0f;
+  color: #fff;
+  font-family: sans-serif;
+  text-align: center;
   margin: 0;
-  font-family: -apple-system, sans-serif;
-  background: linear-gradient(135deg, #0d0d0d, #1a1a1a);
-  color: var(--text);
-  display: flex;
-  justify-content: center;
-}
-
-.container {
-  width: 100%;
-  max-width: 420px;
-  padding: 20px;
 }
 
 h1 {
-  text-align: center;
-  margin-bottom: 10px;
+  margin-top: 20px;
 }
 
-.card {
-  background: var(--card);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 0 20px #00ff8830;
+.container {
+  padding: 15px;
 }
 
-input, select {
-  width: 100%;
-  margin-top: 12px;
+input, select, button {
+  width: 90%;
+  margin: 8px;
   padding: 12px;
   border-radius: 12px;
   border: none;
-  background: #2a2a2a;
-  color: white;
-  font-size: 15px;
 }
 
 button {
-  width: 100%;
-  margin-top: 15px;
-  padding: 14px;
-  border-radius: 14px;
-  border: none;
-  background: var(--primary);
+  background: linear-gradient(45deg, #00ff99, #00ccff);
   font-weight: bold;
-  font-size: 16px;
   cursor: pointer;
-  color: black;
-  transition: 0.2s;
 }
 
 button:hover {
-  transform: scale(1.03);
-  background: #00cc77;
+  opacity: 0.9;
+}
+
+.styles button {
+  width: 30%;
+  font-size: 12px;
+}
+
+.active {
+  background: #00ff99 !important;
+  color: #000;
+}
+
+img {
+  margin-top: 15px;
+  max-width: 90%;
+  border-radius: 12px;
 }
 
 #status {
-  text-align: center;
-  margin-top: 15px;
-  color: #66ffaa;
+  margin-top: 10px;
 }
 
-.image-box {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.image-box img {
-  width: 100%;
-  border-radius: 14px;
-  box-shadow: 0 0 15px #00ff8870;
-}
-
-.footer {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 12px;
-  color: #777;
+#history img {
+  width: 70px;
+  margin: 5px;
+  border-radius: 8px;
+  cursor: pointer;
 }
 </style>
 </head>
 
 <body>
 
+<h1>✨ Sticker AI PRO</h1>
+
 <div class="container">
 
-  <h1>✨ Sticker AI</h1>
+<input id="prompt" placeholder="Ex: cachorro astronauta fofo">
 
-  <div class="card">
+<div class="styles">
+  <button onclick="setStyle('sticker', this)" class="active">🟢 Figurinha</button>
+  <button onclick="setStyle('emoji', this)">😀 Emoji</button>
+  <button onclick="setStyle('anime', this)">🎌 Anime</button>
+  <button onclick="setStyle('realista', this)">📸 Realista</button>
+  <button onclick="setStyle('pixel', this)">👾 Pixel</button>
+  <button onclick="setStyle('3d', this)">🧊 3D</button>
+  <button onclick="setStyle('neon', this)">🌆 Neon</button>
+</div>
 
-    <input id="prompt" placeholder="Ex: cachorro astronauta fofo">
+<input id="apiKey" placeholder="hf_...">
 
-    <select id="model">
-      <option value="stabilityai/stable-diffusion-xl-base-1.0">SDXL (melhor)</option>
-    </select>
+<button onclick="generate()">🚀 Gerar</button>
 
-    <select id="style">
-      <option value="sticker">🟢 Figurinha</option>
-      <option value="emoji">😀 Emoji</option>
-      <option value="anime">👾 Anime</option>
-      <option value="pixel">🟣 Pixel</option>
-      <option value="3d">🌀 3D</option>
-      <option value="neon">🌆 Neon</option>
-    </select>
+<p id="status"></p>
 
-    <input id="apiKey" placeholder="hf_...">
+<img id="img">
 
-    <button onclick="generate()">Gerar Figurinha</button>
+<br>
+<button onclick="downloadImage()">⬇️ Baixar</button>
+<button onclick="clearHistory()">🗑 Limpar</button>
 
-    <p id="status"></p>
-
-  </div>
-
-  <div class="image-box">
-    <img id="img">
-  </div>
-
-  <div class="footer">
-    Gerador de Figurinhas com IA 🚀
-  </div>
+<div id="history">
+  <h3>🕘 Histórico</h3>
+</div>
 
 </div>
 
 <script>
-function buildPrompt(text, style) {
+let style = 'sticker';
+
+function setStyle(s, el) {
+  style = s;
+  document.querySelectorAll('.styles button').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// PROMPT INTELIGENTE
+function buildPrompt(base) {
   const styles = {
-    sticker: "whatsapp sticker, white outline, centered",
-    emoji: "emoji style, flat, vibrant, icon",
-    anime: "anime style, detailed, vibrant",
-    pixel: "pixel art, 16-bit",
-    "3d": "3D render, realistic lighting",
-    neon: "neon glow, cyberpunk"
+    sticker: "cute sticker, white background, whatsapp style, high quality",
+    emoji: "emoji style, simple, rounded, clean, vector",
+    anime: "anime style, vibrant colors, detailed, studio ghibli",
+    realista: "photorealistic, ultra realistic, 4k, high detail",
+    pixel: "pixel art, 8-bit, retro game style",
+    "3d": "3D render, blender style, soft lighting",
+    neon: "cyberpunk neon, glowing lights, dark background"
   };
 
-  return `${text}, ${styles[style]}, high quality, centered`;
+  return base + ", " + styles[style];
 }
 
 async function generate() {
-  const prompt = document.getElementById('prompt').value;
-  const model = document.getElementById('model').value;
-  const style = document.getElementById('style').value;
+  const basePrompt = document.getElementById('prompt').value;
   const apiKey = document.getElementById('apiKey').value;
 
-  const status = document.getElementById('status');
-  const img = document.getElementById('img');
-
-  if (!prompt || !apiKey) {
+  if (!basePrompt || !apiKey) {
     alert('Preencha tudo');
     return;
   }
 
-  const finalPrompt = buildPrompt(prompt, style);
+  const prompt = buildPrompt(basePrompt);
 
-  status.textContent = 'Gerando... ⏳';
-  img.src = '';
+  document.getElementById('status').innerText = 'Gerando... ⏳';
+  document.getElementById('img').src = '';
 
   try {
-    const response = await fetch('/generate', {
+    const res = await fetch('/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        prompt: finalPrompt,
-        model: model,
+        prompt: prompt,
+        model: "runwayml/stable-diffusion-v1-5",
         apiKey: apiKey
       })
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.details || err.error);
-    }
+    if (!res.ok) throw new Error(await res.text());
 
-    const blob = await response.blob();
+    const blob = await res.blob();
     const url = URL.createObjectURL(blob);
 
-    img.src = url;
-    status.textContent = '✅ Pronto!';
+    document.getElementById('img').src = url;
+    document.getElementById('status').innerText = '✅ Pronto!';
 
-  } catch (err) {
-    status.textContent = '❌ ' + err.message;
+    save(url);
+
+  } catch (e) {
+    document.getElementById('status').innerText = '❌ ' + e.message;
   }
 }
+
+// HISTÓRICO
+function save(url) {
+  let list = JSON.parse(localStorage.getItem('imgs')) || [];
+  list.unshift(url);
+  list = list.slice(0, 20);
+  localStorage.setItem('imgs', JSON.stringify(list));
+  renderHistory();
+}
+
+function renderHistory() {
+  const div = document.getElementById('history');
+  div.innerHTML = "<h3>🕘 Histórico</h3>";
+
+  const list = JSON.parse(localStorage.getItem('imgs')) || [];
+
+  list.forEach(url => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.onclick = () => document.getElementById('img').src = url;
+    div.appendChild(img);
+  });
+}
+
+// DOWNLOAD
+function downloadImage() {
+  const img = document.getElementById('img');
+  if (!img.src) return alert('Nenhuma imagem');
+
+  const a = document.createElement('a');
+  a.href = img.src;
+  a.download = 'sticker.png';
+  a.click();
+}
+
+// LIMPAR
+function clearHistory() {
+  localStorage.removeItem('imgs');
+  renderHistory();
+}
+
+window.onload = renderHistory;
 </script>
 
 </body>
