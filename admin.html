@@ -1,1 +1,203 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administração | IBC Tweens</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f3f4f6;
+      font-family: Arial, sans-serif;
+      color: #222;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    }
+
+    h1 { margin-top: 0; font-size: 24px; }
+    p { color: #666; line-height: 1.5; }
+
+    label {
+      display: block;
+      margin: 18px 0 7px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 20px;
+      border: 0;
+      border-radius: 8px;
+      background: #243b63;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover { background: #192b49; }
+
+    #mensagem {
+      margin-top: 15px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .painel { display: none; }
+    .sair { background: #777; }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <section id="login">
+      <h1>IBC Tweens</h1>
+      <p>Área administrativa — Escalas de voluntários</p>
+
+      <form id="formLogin">
+        <label for="usuario">Login</label>
+        <input
+          id="usuario"
+          type="text"
+          placeholder="Digite o login"
+          autocomplete="username"
+          required
+        >
+
+        <label for="senha">Senha</label>
+        <input
+          id="senha"
+          type="password"
+          placeholder="Digite a senha"
+          autocomplete="current-password"
+          required
+        >
+
+        <button type="submit" id="botaoEntrar">Entrar</button>
+      </form>
+
+      <div id="mensagem" role="status"></div>
+    </section>
+
+    <section id="painel" class="painel">
+      <h1>Painel administrativo</h1>
+      <p>Você entrou na área administrativa do IBC Tweens.</p>
+      <p id="statusPainel">Verificando acesso...</p>
+      <button class="sair" id="botaoSair">Sair</button>
+    </section>
+  </main>
+
+  <script>
+    const SUPABASE_URL = "https://qbgqcujukcokxhqgdond.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MBYuod11hGgJ1TCjA8V4kw_ljvgf_Ee";
+
+    const ADMIN_LOGIN = "Tweens-EBD";
+    const ADMIN_EMAIL = "tweens-admin@ibc-tweens-escalas.vercel.app";
+
+    const db = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    const loginSection = document.getElementById("login");
+    const painelSection = document.getElementById("painel");
+    const mensagem = document.getElementById("mensagem");
+
+    async function abrirPainel() {
+      const { data: { session } } = await db.auth.getSession();
+
+      if (!session) {
+        loginSection.style.display = "block";
+        painelSection.style.display = "none";
+        return;
+      }
+
+      loginSection.style.display = "none";
+      painelSection.style.display = "block";
+
+      const { data, error } = await db
+        .from("volunteers")
+        .select("id, name")
+        .order("name");
+
+      const status = document.getElementById("statusPainel");
+
+      if (error) {
+        status.textContent = "Acesso confirmado, mas houve um erro ao consultar os voluntários: " + error.message;
+        return;
+      }
+
+      status.textContent = "Acesso confirmado! " + data.length + " voluntários cadastrados.";
+    }
+
+    document.getElementById("formLogin").addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const usuario = document.getElementById("usuario").value.trim();
+      const senha = document.getElementById("senha").value;
+      const botao = document.getElementById("botaoEntrar");
+
+      if (usuario !== ADMIN_LOGIN) {
+        mensagem.textContent = "Login inválido.";
+        return;
+      }
+
+      botao.disabled = true;
+      botao.textContent = "Entrando...";
+      mensagem.textContent = "";
+
+      const { error } = await db.auth.signInWithPassword({
+        email: ADMIN_EMAIL,
+        password: senha
+      });
+
+      botao.disabled = false;
+      botao.textContent = "Entrar";
+
+      if (error) {
+        mensagem.textContent = "Não foi possível entrar. Confira a senha e tente novamente.";
+        return;
+      }
+
+      document.getElementById("senha").value = "";
+      await abrirPainel();
+    });
+
+    document.getElementById("botaoSair").addEventListener("click", async () => {
+      await db.auth.signOut();
+      await abrirPainel();
+      mensagem.textContent = "Você saiu da área administrativa.";
+    });
+
+    abrirPainel();
+  </script>
+</body>
+</html>
+
